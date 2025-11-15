@@ -1,12 +1,19 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict
+from typing import List, Dict, optional
 
-class vigilante(BaseModel):
-    idVigilante: int = Field(..., description="ID único del vigilante")
+class VigilanteBase(BaseModel):
+    numeroDocumento : str
+    contrasena : str
+    acciones: List[Dict[str, str]] = []
+
+
+class VigilanteCreate(VigilanteBase):
+    pass
+
+
+class VigilanteUpdate(VigilanteBase):
+    idVigilante: int
     idUsuario: int
-    numeroDocumento: str
-    contrasena: str
-    acciones: List[Dict[str]] = []
 
 
 
