@@ -1,7 +1,8 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict, optional
+from typing import List, Dict, Optional
 
 class VigilanteBase(BaseModel):
+    idUsuario: int
     numeroDocumento : str
     contrasena : str
     acciones: List[Dict[str, str]] = []
@@ -13,7 +14,7 @@ class VigilanteCreate(VigilanteBase):
 
 class VigilanteUpdate(VigilanteBase):
     idVigilante: int
-    idUsuario: int
+    
 
 
 

@@ -63,7 +63,7 @@ def actualizar_vigilante(vigilante_id: int, vigilante: VigilanteUpdate):
 def eliminar_vigilante(vigilante_id: int):
     for i, v in enumerate(vigilantes_db):
         if v.idVigilante == vigilante_id:
-            del vigilantes_db.pop(i)
+            vigilantes_db.pop(i)
             return {"detail": "Vigilante eliminado"}
         
     raise HTTPException(status_code=404, detail="Vigilante no encontrado")
