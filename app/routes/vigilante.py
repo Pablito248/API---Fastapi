@@ -1,69 +1,47 @@
 from fastapi import APIRouter, HTTPException
 from app.models.vigilante import VigilanteCreate, VigilanteUpdate, VigilanteBase
+from app.core.database import db
 
-router = APIRouter()
-
-vigilantes_db = []
-current_id = 1
-
-
-@router.get("/vigilantes/", response_model=list[VigilanteBase])
-def obtener_vigilantes():
-    return vigilantes_db
+router = APIRouter(prefix="/vigilantes", tags=["vigilantes"])
+coleccion = db["vigilantes"]
 
 
+@router.post("/")
+async def crear_vigilante(vigilante: VigilanteCreate):
+    result = coleccion.insert_one(vigilante.dict())
+    return {"mensaje": "Vigilante creado con éxito", "id": str(result.inserted_id)}
 
-@router.get("/vigilantes/{vigilante_id}", response_model=VigilanteBase)
-def obtener_vigilante(vigilante_id: int):
-    for v in vigilantes_db:
-        if v['idVigilante'] == vigilante_id:
-            return v
-        
-    raise HTTPException(status_code=404, detail="Vigilante no encontrado")
+@router.get("/")
+async def listar_vigilantes():
+    vigilantes = list(coleccion.find())
+    for v in vigilantes:
+        v["_id"] = str(v["_id"])
+    return vigilantes
 
+@router.get("/{idVigilante}")
+async def obtener_vigilante(idVigilante: int):
+    vigilante = coleccion.find_one({"_id": idVigilante})
+    if not vigilante:
+        raise HTTPException(status_code=404, detail="Vigilante no encontrado")
+    vigilante["_id"] = str(vigilante["_id"])
+    return vigilante
 
-@router.post("/vigilantes/", response_model=VigilanteBase)
-def crear_vigilante(vigilante: VigilanteCreate):
-    global current_id
-
-    nuevo_vigilante = vigilante(
-        idVigilante=current_id,
-        idUsuario=current_id, # Cambiar cuando se conecte a la BD
-        numeroDocumento=vigilante.numeroDocumento,
-        contrasena=vigilante.contrasena,
-        acciones=vigilante.acciones
-
+@router.put("/{idVigilante}")
+async def actualizar_vigilante(idVigilante: int, vigilante: VigilanteUpdate):
+    update_result = coleccion.update_one(
+        {"_id": idVigilante},
+        {"$set": vigilante.dict(exclude={"idVigilante"})}  
     )
+    if update_result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Vigilante no encontrado")
+    return {"mensaje": "Vigilante actualizado con éxito"}
+
+@router.delete("/{idVigilante}")
+async def eliminar_vigilante(idVigilante: int):
+    delete_result = coleccion.delete_one({"_id": idVigilante})
+    if delete_result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Vigilante no encontrado")
+    return {"mensaje": "Vigilante eliminado con éxito"}
 
 
-    vigilantes_db.aappend(nuevo_vigilante)
-    current_id += 1
 
-    return nuevo_vigilante
-
-
-@router.put("/vigilantes/{vigilante_id}", response_model=VigilanteBase)
-def actualizar_vigilante(vigilante_id: int, vigilante: VigilanteUpdate):
-    for i, v in enumerate(vigilantes_db):
-        if v.idVigilante == vigilante_id:
-            vigilantes_db[i] = vigilante(
-                idVigilante=vigilante_id,
-                idUsuario=vigilante.idUsuario,
-                numeroDocumento=vigilante.numeroDocumento,
-                contrasena=vigilante.contrasena,
-                acciones=vigilante.acciones        
-            )
-            
-            return vigilantes_db[i]
-        
-    raise HTTPException(status_code=404, detail="Vigilante no encontrado")
-
-
-@router.delete("/vigilantes/{vigilante_id}")
-def eliminar_vigilante(vigilante_id: int):
-    for i, v in enumerate(vigilantes_db):
-        if v.idVigilante == vigilante_id:
-            vigilantes_db.pop(i)
-            return {"detail": "Vigilante eliminado"}
-        
-    raise HTTPException(status_code=404, detail="Vigilante no encontrado")

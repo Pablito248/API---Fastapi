@@ -1,120 +1,64 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
-from typing import Optional
-import cloudinary.uploader
+from app.core.database import db
 from app.models.usuario import Usuario
+from bson import ObjectId
+import cloudinary.uploader
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
-
-Usuario_db = []
+coleccion = db["usuarios"]
 
 
 @router.post("/")
-def crear_usuario(
-    idUsuario: int = Form(...),
-    nombre: str = Form(...),
-    apellido: str = Form(...),
-    tipoDocumento: str = Form(...),
-    numeroDocumento: str = Form(...),
-    entidad: Optional[str] = Form(None),
-    rol: Optional[str] = Form(None),
-    file: Optional[UploadFile] = File(None),
-):
-    # verificar duplicado antes de subir
-    for u in Usuario_db:
-        if u.idUsuario == idUsuario:
-            raise HTTPException(status_code=400, detail="Usuario ya existe")
+async def crear_usuario(usuario: Usuario):
+    result = coleccion.insert_one(usuario.dict())
+    return {"mensaje": "Usuario creado con éxito", "id": str(result.inserted_id)}
 
-    usuario = Usuario(
-        idUsuario=idUsuario,
-        nombre=nombre,
-        apellido=apellido,
-        tipoDocumento=tipoDocumento,
-        numeroDocumento=numeroDocumento,
-        entidad=entidad,
-        rol=rol,
-        foto=None,
+
+@router.put("/{idUsuario}")
+async def actualizar_usuario(idUsuario: int, usuario: Usuario):
+    update_result = coleccion.update_one(
+        {"idUsuario": idUsuario},
+        {"$set": usuario.dict()}
     )
+    if update_result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return {"mensaje": "Usuario actualizado con éxito"}
 
-    if file:
-        try:
-            result = cloudinary.uploader.upload(
-                file.file,
-                folder="usuarios",
-                public_id=f"user_{idUsuario}",
-                overwrite=True,
-                resource_type="image",
-            )
-            usuario.foto = result.get("secure_url")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error al subir la imagen: {e}")
 
-    Usuario_db.append(usuario)
-    return {"message": "Usuario creado exitosamente", "usuario": usuario}
+@router.get("/{id}")
+def obtener_usuario(id: str):
+    if not ObjectId.is_valid(id):
+        raise HTTPException(status_code=400, detail="ID de usuario inválido")
+    
+    usuario = coleccion.find_one({"_id": ObjectId(id)})
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
 
 
 @router.get("/")
 def listar_usuarios():
-    return Usuario_db
+        usuarios = list(coleccion.find())
+        resultado = []
+        for u in usuarios:
+             u["_id"] = str(u["_id"])
 
+        if "idUsuario" not in u:
+            u["idUsuario"] = 0 
+            resultado.append(Usuario(**u))
+        
+        return resultado
 
-@router.get("/{id_usuario}")
-def obtener_usuario(id_usuario: int):
-    for u in Usuario_db:
-        if u.idUsuario == id_usuario:
-            return u
-    raise HTTPException(status_code=404, detail="Usuario no encontrado")
+@router.delete("/{id}")
+def eliminar_usuario(id: str):
+    if not ObjectId.is_valid(id):
+        raise HTTPException(status_code=400, detail="ID de usuario inválido")
+    
 
-
-@router.put("/{id_usuario}")
-def actualizar_usuario(
-    id_usuario: int,
-    nombre: Optional[str] = Form(None),
-    apellido: Optional[str] = Form(None),
-    tipoDocumento: Optional[str] = Form(None),
-    numeroDocumento: Optional[str] = Form(None),
-    entidad: Optional[str] = Form(None),
-    rol: Optional[str] = Form(None),
-    file: Optional[UploadFile] = File(None),
-):
-    for i, u in enumerate(Usuario_db):
-        if u.idUsuario == id_usuario:
-            # actualizar campos si se enviaron
-            if nombre is not None:
-                Usuario_db[i].nombre = nombre
-            if apellido is not None:
-                Usuario_db[i].apellido = apellido
-            if tipoDocumento is not None:
-                Usuario_db[i].tipoDocumento = tipoDocumento
-            if numeroDocumento is not None:
-                Usuario_db[i].numeroDocumento = numeroDocumento
-            if entidad is not None:
-                Usuario_db[i].entidad = entidad
-            if rol is not None:
-                Usuario_db[i].rol = rol
-
-            if file:
-                try:
-                    result = cloudinary.uploader.upload(
-                        file.file,
-                        folder="usuarios",
-                        public_id=f"user_{id_usuario}",
-                        overwrite=True,
-                        resource_type="image",
-                    )
-                    Usuario_db[i].foto = result.get("secure_url")
-                except Exception as e:
-                    raise HTTPException(status_code=500, detail=f"Error al subir la imagen: {e}")
-
-            return {"message": "Usuario actualizado exitosamente", "usuario": Usuario_db[i]}
-    raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-
-@router.delete("/{id_usuario}")
-def eliminar_usuario(id_usuario: int):
-    for i, u in enumerate(Usuario_db):
-        if u.idUsuario == id_usuario:
-            del Usuario_db[i]
-            return {"message": "Usuario eliminado exitosamente"}
-    raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    result = coleccion.delete_one({"_id": ObjectId(id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    return {"mensaje": "Usuario eliminado correctamente"}
 
 

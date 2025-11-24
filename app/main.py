@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from dotenv import load_dotenv
+from pymongo import MongoClient
 import os
 from pathlib import Path
 from app.routes import usuario, vigilante, administrador, registro_entrada_salida, visitante_temporal, sistema_reconocimiento, rol
 from app.core.cloudinary_config import init_cloudinary
+
 
 # cargar .env desde la carpeta `app`
 APP_DIR = Path(__file__).resolve().parent
