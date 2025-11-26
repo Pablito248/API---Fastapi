@@ -14,4 +14,4 @@ class AdministradorCreate(AdministradorBase):
 
 
 class AdministradorUpdate(AdministradorBase):
-    idAdministrador: int
+    pass

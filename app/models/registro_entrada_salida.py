@@ -1,10 +1,17 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 
-class registro_entrada(BaseModel):
-    idRegistro: int = Field(..., description="ID del registro")
+class RegistroEntradaBase(BaseModel):
     idUsuario: int
-    fehcaHora: datetime
+    fechaHora: datetime
     tipoMovimiento: str
     numeroDocumento: str
-    rol: str 
+    rol: str
+
+
+class RegistroEntradaCreate(RegistroEntradaBase):
+    pass
+
+
+class RegistroEntradaUpdate(RegistroEntradaBase):
+    pass

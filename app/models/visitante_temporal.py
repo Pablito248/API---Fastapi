@@ -7,5 +7,5 @@ class visitanteTemporal(BaseModel):
     apellido: str
     numeroDocumento: str
     fechaHoraVisita: datetime
-    ingreaso: bool
+    ingreso: bool
     salida: bool

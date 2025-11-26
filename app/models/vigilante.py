@@ -13,8 +13,7 @@ class VigilanteCreate(VigilanteBase):
 
 
 class VigilanteUpdate(VigilanteBase):
-    idVigilante: int
-    
+    pass
 
 
 
